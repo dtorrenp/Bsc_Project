@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #%%
 from astroquery.sdss import SDSS
 
@@ -11,6 +12,8 @@ import timeit
 import numpy as np
 import matplotlib.pyplot as plt
 
+import warnings
+
 #%%
 """Open fits file and create "Table" object with which actual data can be accessed"""
 start = timeit.default_timer()
@@ -22,23 +25,24 @@ colnames_PLANCK = t_data_PLANCK.colnames
 
 def loop_through_planck(table,f):
     length = len(table)
-    new_table = Table(names=(table.colnames))
+    
+    new_table_galaxy = Table(names=(table.colnames))
+    new_table_star = Table(names=(table.colnames))
+    new_table_other = Table(names=(table.colnames))
     
     for i in np.arange(length):
-        print(str(np.around(i/length,3)) + "%")
         righta = table["RA"][i]
         declin = table["DEC"][i]
         
         if np.abs(table["GLAT"][i]) < 20:
-#            print("less than 20")
             continue
         pos = coords.SkyCoord( ra = righta*u.degree , dec = declin*u.degree)
         galatic_pos = pos.galactic
         
-        xid = SDSS.query_region(galatic_pos, spectro = True , radius = 2.5*u.arcmin , specobj_fields=['Z'], photoobj_fields=['u','g','r','i'])
-        
+
+        xid = SDSS.query_region(galatic_pos, spectro = True , radius = 2.5*u.arcmin , specobj_fields=['Z','class'], photoobj_fields=['u','g','r','i'])
+
         if xid is None:
-#            print("NOTHING THERE")
             continue
         
         flux_list_filter = []
@@ -49,9 +53,15 @@ def loop_through_planck(table,f):
             
         position = flux_list_filter.index(max(flux_list_filter))
         max_flux_object = xid[position]
-        new_table = vstack([new_table, max_flux_object])
+        
+        if max_flux_object["class"] == "GALAXY":
+            new_table_galaxy = vstack([new_table_galaxy, max_flux_object])
+        elif max_flux_object["class"] == "STAR":
+            new_table_star = vstack([new_table_star, max_flux_object])
+        else:
+            new_table_other = vstack([new_table_other, max_flux_object])
     
-    return new_table
+    return new_table_galaxy,new_table_star,new_table_other
 #%%
 
 def cal_abs_mag_astro(table,f,f_plus):
@@ -63,22 +73,76 @@ def cal_abs_mag_astro(table,f,f_plus):
 
 #%%
 #ugriz  filters
+with warnings.catch_warnings():
     
-sdss_galaxies_g = loop_through_planck(t_data_PLANCK, "g")
-a , b = cal_abs_mag_astro(sdss_galaxies_g,"g","r")
-plt.figure(1)
-plt.title("Colour Magnitude plot")
-plt.xlabel("Absolute magnitude (g)")
-plt.ylabel("Colour (g-r)")
-plt.scatter(a,b,s = 0.45)
+    warnings.simplefilter("ignore")
+    
+    sdss_galaxies_u, star_u, other_u = loop_through_planck(t_data_PLANCK, "u")
+    sdss_galaxies_u.write("sdss_galaxies_u", format = 'ascii')
+    star_u.write("star_u", format = 'ascii')
+    other_u.write("other_u", format = 'ascii')
+    Abs_mag_u , colour_u_g = cal_abs_mag_astro(sdss_galaxies_u,"u","g")
 
-sdss_galaxies_u = loop_through_planck(t_data_PLANCK, "u")
-c , d = cal_abs_mag_astro(sdss_galaxies_u,"u","g")
-plt.figure(2)
+    print("1 down")
+    
+    sdss_galaxies_g, star_g, other_g = loop_through_planck(t_data_PLANCK, "g")
+    sdss_galaxies_g.write("sdss_galaxies_g", format = 'ascii')
+    star_g.write("star_g", format = 'ascii')
+    other_g.write("other_g", format = 'ascii')
+    Abs_mag_g , colour_g_r = cal_abs_mag_astro(sdss_galaxies_g,"g","r")
+
+    print("2 down")
+    
+    sdss_galaxies_r, star_r, other_r = loop_through_planck(t_data_PLANCK, "r")
+    sdss_galaxies_r.write("sdss_galaxies_r", format = 'ascii')
+    star_r.write("star_r", format = 'ascii')
+    other_r.write("other_r", format = 'ascii')
+    Abs_mag_r , colour_r_i = cal_abs_mag_astro(sdss_galaxies_r,"r","i")
+
+    print("3 down")
+    
+#    sdss_galaxies_i, star_i, other_i = loop_through_planck(t_data_PLANCK, "i")
+#    sdss_galaxies_i.write("sdss_galaxies_i", format = 'ascii')
+#    star_i.write("star_i", format = 'ascii')
+#    other_i.write("other_i", format = 'ascii')
+#    Abs_mag_i , colour_i_z = cal_abs_mag_astro(sdss_galaxies_r,"i","z")
+#    
+#    print("4 down")
+    
+    
+    #%%
+plt.figure(1)
 plt.title("Colour Magnitude plot")
 plt.xlabel("Absolute magnitude (u)")
 plt.ylabel("Colour (u-g)")
-plt.scatter(c,d,s = 0.45)
+plt.scatter(Abs_mag_u,colour_u_g,s = 0.45)
+plt.savefig("Colour_Magnitude_plot_u__u_g.png")
+
+plt.figure(2)
+plt.title("Colour Magnitude plot")
+plt.xlabel("Absolute magnitude (g)")
+plt.ylabel("Colour (g-r)")
+plt.scatter(Abs_mag_g,colour_g_r,s = 0.45)
+plt.savefig("Colour_Magnitude_plot_g__g_r.png")
+    
+plt.figure(3)
+plt.title("Colour Magnitude plot")
+plt.xlabel("Absolute magnitude (r)")
+plt.ylabel("Colour (r-i)")
+plt.scatter(Abs_mag_r,colour_r_i, s = 0.45)
+
+#plt.figure(4)
+#plt.title("Colour Magnitude plot")
+#plt.xlabel("Absolute magnitude (i)")
+#plt.ylabel("Colour (i-z)")
+#plt.scatter(Abs_mag_i,colour_i_z, s = 0.45)
+#plt.savefig("Colour_Magnitude_plot_i__i_z.png")
+
+plt.savefig("Colour_Magnitude_plot_r__r_i.png")
+u_data_galaxy = Table.read("sdss_galaxies_u", format='ascii')
+g_data_galaxy = Table.read("sdss_galaxies_g", format='ascii')
+r_data_galaxy = Table.read("sdss_galaxies_r", format='ascii')
+#i_data_galaxy = Table.read("sdss_galaxies_i", format='ascii')
 
 end = timeit.default_timer()
 print(end-start)
