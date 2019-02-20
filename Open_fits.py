@@ -44,31 +44,35 @@ def loop_through_planck(table,f):
         galatic_pos = pos.galactic
         
 
-        xid = SDSS.query_region(galatic_pos, spectro = True , radius = 2.5*u.arcmin , specobj_fields=['Z','class'], photoobj_fields=['ra','dec','u','g','r','i'])
+        xid = SDSS.query_region(galatic_pos, spectro = True , radius = 2.5*u.arcmin , specobj_fields=['Z','class'], photoobj_fields=['objID','ra','dec','u','g','r','i'])
 
         if xid is None:
             continue
         
-        flux_list_filter = []
-        
-        for v in np.arange(len(xid)):
-            flux_f = xid[f][v]
-            flux_list_filter.append(flux_f)
-            
-        position = flux_list_filter.index(max(flux_list_filter))
-        max_flux_object = xid[position]
-        
-        if max_flux_object["class"] == "GALAXY":
-            new_table_galaxy = vstack([new_table_galaxy, max_flux_object])
-            if f == 'u':
-                righta_max = max_flux_object["ra"]
-                declin_max = max_flux_object["dec"]
-                sep = pos.separation(coords.SkyCoord( ra = righta_max*u.degree , dec = declin_max*u.degree))
-                sep_list.append(sep.arcsecond)
-        elif max_flux_object["class"] == "STAR":
-            new_table_star = vstack([new_table_star, max_flux_object])
+        xid.sort(f)
+        sub_length = len(xid)
+        #LOOK AT A MAX OF THREE OBJECTS
+        #MAX MAGNITUDE IS THE SMALLEST 
+        if sub_length == 1:
+            number_objects_to_look_at = 1
+        elif sub_length == 2:
+            number_objects_to_look_at = 2
         else:
-            new_table_other = vstack([new_table_other, max_flux_object])
+            number_objects_to_look_at = 3
+        
+        for v in np.arange(number_objects_to_look_at):
+            max_flux_object = xid[v]
+            if max_flux_object["class"] == "GALAXY":
+                new_table_galaxy = vstack([new_table_galaxy, max_flux_object])
+                if f == 'u':
+                    righta_max = max_flux_object["ra"]
+                    declin_max = max_flux_object["dec"]
+                    sep = pos.separation(coords.SkyCoord( ra = righta_max*u.degree , dec = declin_max*u.degree))
+                    sep_list.append(sep.arcsecond)
+            elif max_flux_object["class"] == "STAR":
+                new_table_star = vstack([new_table_star, max_flux_object])
+            else:
+                new_table_other = vstack([new_table_other, max_flux_object])
     
     if f == 'u':
         return new_table_galaxy,new_table_star,new_table_other,sep_list
@@ -81,6 +85,7 @@ def cal_abs_mag_astro(table,f,f_plus):
     z_val = np.array(table["Z"])
     colour = np.asarray(table[f_plus]) - np.asarray(table[f])
     Abs_mag = np.asarray(table[f]) - 5*np.log10(4.28e8*z_val) + 5
+    #wathc out for infinity magnitude!!!!!
     return Abs_mag, colour
 
 #%%
@@ -158,17 +163,17 @@ plt.savefig("Colour_Magnitude_plot_u__u_g.png")
 
 #%%
 plt.figure(5)
-plt.title("Galaxy separation using Great Circle")
-plt.xlabel("Separation")
+plt.title("Galaxy separation using Great Circle - u")
+plt.xlabel("Separation (u)")
 plt.ylabel("Number of galaxies")
-plt.hist(sep_list, bins = 25)
-plt.savefig("Galaxy separation using Great Circle")
+plt.hist(sep_list)
+plt.savefig("Galaxy separation using Great Circle - u")
 
 plt.figure(6)
 plt.title("Colour Histogram")
 plt.xlabel("Colour (u-g)")
 plt.ylabel("Count")
-plt.hist(colour_u_g,bins = 25)
+plt.hist(colour_u_g)
 plt.savefig("colour_u_g")
 
 #plt.figure(7)
@@ -177,12 +182,3 @@ plt.savefig("colour_u_g")
 #plt.ylabel("Count")
 #plt.hist(colour_g_r)
 #
-#plt.figure(8)
-#plt.title("Colour Histogram")
-#plt.xlabel("Colour (r-i)")
-#plt.ylabel("Count")
-#plt.hist(colour_r_i)
-
-#%%
-end = timeit.default_timer()
-print(end-start)

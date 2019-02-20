@@ -3,7 +3,7 @@
 from astroquery.sdss import SDSS
 
 from astropy.io import fits
-from astropy.table import Table
+from astropy.table import Table, unique
 from astropy import coordinates as coords
 from astropy.table import vstack
 import astropy.units as u
@@ -24,6 +24,8 @@ hdu_BinTable_PLANCK = hdulist_PLANCK[1]
 t_data_PLANCK = Table(hdu_BinTable_PLANCK.data)
 colnames_PLANCK = t_data_PLANCK.colnames
 
+bins = 100
+
 def loop_through_planck(table,f):
     length = len(table)
     
@@ -31,10 +33,14 @@ def loop_through_planck(table,f):
     new_table_star = Table(names=(table.colnames))
     new_table_other = Table(names=(table.colnames))
     
-    if f == 'u':
+    if f == 'r':
         sep_list = []
-    
+    mag_list = []
+    mag_list_diff_one_two = []
+    mag_list_diff_two_three = []
     for i in np.arange(length):
+        
+        
         righta = table["RA"][i]
         declin = table["DEC"][i]
         
@@ -45,46 +51,63 @@ def loop_through_planck(table,f):
         
 
         xid = SDSS.query_region(galatic_pos, spectro = True , radius = 2.5*u.arcmin , specobj_fields=['Z','class'], photoobj_fields=['ra','dec','u','g','r','i'])
-
+        
         if xid is None:
             continue
-        
+        xid = unique(xid,keys=['ra', 'dec'])
         xid.sort(f)
-        sub_length = len(xid)
-        #LOOK AT A MAX OF THREE OBJECTS
-        #MAX MAGNITUDE IS THE SMALLEST 
+        sub_length = len(xid)        
+        
+        mag_list = np.concatenate((mag_list,xid[f]))
+        
+#        if len(xid) == 1:
+#            mag_list_diff_one_two.append(xid[f][0])
+        if len(xid) == 2:
+            mag_list_diff_one_two.append(xid[f][1] - xid[f][0])
+        elif len(xid) > 2:
+            mag_list_diff_one_two.append(xid[f][1] - xid[f][0])
+            mag_list_diff_two_three.append(xid[f][2] - xid[f][1])
+
         if sub_length == 1:
             number_objects_to_look_at = 1
         elif sub_length == 2:
-            number_objects_to_look_at = 2
+            number_objects_to_look_at = 1
         else:
-            number_objects_to_look_at = 3
+            number_objects_to_look_at = 1
         
         for v in np.arange(number_objects_to_look_at):
-            max_flux_object = xid[v]
-            if max_flux_object["class"] == "GALAXY":
-                new_table_galaxy = vstack([new_table_galaxy, max_flux_object])
-                if f == 'u':
-                    righta_max = max_flux_object["ra"]
-                    declin_max = max_flux_object["dec"]
+            max_mag_object = xid[v]
+            
+            if max_mag_object["class"] == "GALAXY":
+                new_table_galaxy = vstack([new_table_galaxy, max_mag_object])
+                
+                if f == 'r':
+                    righta_max = max_mag_object["ra"]
+                    declin_max = max_mag_object["dec"]
                     sep = pos.separation(coords.SkyCoord( ra = righta_max*u.degree , dec = declin_max*u.degree))
                     sep_list.append(sep.arcsecond)
-            elif max_flux_object["class"] == "STAR":
-                new_table_star = vstack([new_table_star, max_flux_object])
+                    
+            elif max_mag_object["class"] == "STAR":
+                new_table_star = vstack([new_table_star, max_mag_object])
             else:
-                new_table_other = vstack([new_table_other, max_flux_object])
+                new_table_other = vstack([new_table_other, max_mag_object])
     
-    if f == 'u':
-        return new_table_galaxy,new_table_star,new_table_other,sep_list
+    if f == 'r':
+        return new_table_galaxy,new_table_star,new_table_other,sep_list,mag_list,mag_list_diff_one_two,mag_list_diff_two_three
     else:
         return new_table_galaxy,new_table_star,new_table_other
+    
 #%%
 
 def cal_abs_mag_astro(table,f,f_plus):
     #ugriz  filters
-    z_val = np.array(table["Z"])
-    colour = np.asarray(table[f_plus]) - np.asarray(table[f])
-    Abs_mag = np.asarray(table[f]) - 5*np.log10(4.28e8*z_val) + 5
+    red_mask = table["Z"] > 0
+    red_table = table[red_mask]
+    z_val = np.array(red_table["Z"])
+    colour = np.asarray(red_table[f_plus]) - np.asarray(red_table[f])
+    Abs_mag = np.asarray(red_table[f]) - 5*np.log10(4.28e8*z_val) + 5
+    
+    # ABSOLUTE MAGNITUDE NOT FEASBLE
     #wathc out for infinity magnitude!!!!!
     return Abs_mag, colour
 
@@ -94,14 +117,14 @@ with warnings.catch_warnings():
     
     warnings.simplefilter("ignore")
     
-    sdss_galaxies_u, star_u, other_u, sep_list = loop_through_planck(t_data_PLANCK, "u")
-    sdss_galaxies_u.write("sdss_galaxies_u", format = 'ascii')
-    star_u.write("star_u", format = 'ascii')
-    other_u.write("other_u", format = 'ascii')
-    np.save("separation_u_data",sep_list)
-    Abs_mag_u , colour_u_g = cal_abs_mag_astro(sdss_galaxies_u,"u","g")
-
-    print("1 down")
+#    sdss_galaxies_u, star_u, other_u = loop_through_planck(t_data_PLANCK, "u")
+#    sdss_galaxies_u.write("sdss_galaxies_u", format = 'ascii')
+#    star_u.write("star_u", format = 'ascii')
+#    other_u.write("other_u", format = 'ascii')
+#    np.save("separation_u_data",sep_list)
+#    Abs_mag_u , colour_u_g = cal_abs_mag_astro(sdss_galaxies_u,"u","g")
+#
+#    print("1 down")
     
 #    sdss_galaxies_g, star_g, other_g = loop_through_planck(t_data_PLANCK, "g")
 #    sdss_galaxies_g.write("sdss_galaxies_g", format = 'ascii')
@@ -111,11 +134,11 @@ with warnings.catch_warnings():
 #
 #    print("2 down")
 #    
-#    sdss_galaxies_r, star_r, other_r = loop_through_planck(t_data_PLANCK, "r")
+    sdss_galaxies_r, star_r, other_r, sep_list,mag_list,mag_list_diff_one_two,mag_list_diff_two_three = loop_through_planck(t_data_PLANCK, "r")
 #    sdss_galaxies_r.write("sdss_galaxies_r", format = 'ascii')
 #    star_r.write("star_r", format = 'ascii')
 #    other_r.write("other_r", format = 'ascii')
-#    Abs_mag_r , colour_r_i = cal_abs_mag_astro(sdss_galaxies_r,"r","i")
+    Abs_mag_r , colour_r_i = cal_abs_mag_astro(sdss_galaxies_r,"r","i")
 #
 #    print("3 down")
     
@@ -128,12 +151,13 @@ with warnings.catch_warnings():
 #    print("4 down")
     
     #%%
+
 plt.figure(1)
 plt.title("Colour Magnitude plot")
-plt.xlabel("Absolute magnitude (u)")
+plt.xlabel("Absolute magnitude (r)")
 plt.ylabel("Colour (u-g)")
-plt.scatter(Abs_mag_u,colour_u_g,s = 0.45)
-plt.savefig("Colour_Magnitude_plot_u__u_g.png")
+plt.scatter(Abs_mag_r,colour_r_i,s = 0.45)
+plt.savefig("Colour_Magnitude_plot_r__r_i.png")
 
 #plt.figure(2)
 #plt.title("Colour Magnitude plot")
@@ -162,19 +186,50 @@ plt.savefig("Colour_Magnitude_plot_u__u_g.png")
 #i_data_galaxy = Table.read("sdss_galaxies_i", format='ascii')
 
 #%%
+
+plt.figure(0)
+plt.title("magnitude r")
+plt.xlabel("magnitude r")
+plt.ylabel("Count")
+plt.hist(mag_list,bins)
+plt.savefig("mag_list")
+    
+plt.figure(12)
+plt.title("mag_list_diff_one_two r")
+plt.xlabel("magnitude  diff u")
+plt.ylabel("Count")
+plt.hist(mag_list_diff_one_two,bins)
+plt.savefig("mag_list_diff_one_two")
+
+plt.figure(13)
+plt.title("mag_list_diff_two_three r")
+plt.xlabel("magnitude  diff r")
+plt.ylabel("Count")
+plt.hist(mag_list_diff_two_three,bins)
+plt.savefig("mag_list_diff_two_three")
+
 plt.figure(5)
-plt.title("Galaxy separation using Great Circle - u")
-plt.xlabel("Separation (u)")
+plt.title("Galaxy separation using Great Circle - r")
+plt.xlabel("Separation (r)")
 plt.ylabel("Number of galaxies")
-plt.hist(sep_list)
-plt.savefig("Galaxy separation using Great Circle - u")
+plt.hist(sep_list,bins)
+plt.savefig("Galaxy separation using Great Circle - r")
 
 plt.figure(6)
 plt.title("Colour Histogram")
-plt.xlabel("Colour (u-g)")
+plt.xlabel("Colour (r-i)")
 plt.ylabel("Count")
-plt.hist(colour_u_g)
-plt.savefig("colour_u_g")
+plt.hist(colour_r_i,bins)
+plt.savefig("colour_r_i")
+
+Colour_mask = (-1.5 < colour_r_i) & (colour_r_i < 0.2)
+up_colour = colour_r_i[Colour_mask]
+plt.figure()
+plt.title("Colour Histogram - reduced")
+plt.xlabel("Colour (r-i)")
+plt.ylabel("Count")
+plt.hist(up_colour,bins)
+plt.savefig("reduced colour_r_i")
 
 #plt.figure(7)
 #plt.title("Colour Histogram")
@@ -189,11 +244,11 @@ plt.savefig("colour_u_g")
 #plt.hist(colour_r_i)
 
 plt.figure(9)
-plt.title("Histrogram of absolute magnitudes - u")
-plt.xlabel("Absolute magnitude (u)")
+plt.title("Histrogram of absolute magnitudes - r")
+plt.xlabel("Absolute magnitude (r)")
 plt.ylabel("Number of galaxies")
-plt.hist(Abs_mag_u)
-plt.savefig("Histrogram of absolute magnitudes - u")
+plt.hist(Abs_mag_r,bins)
+plt.savefig("Histrogram of absolute magnitudes - r")
 
 #%%
 end = timeit.default_timer()
