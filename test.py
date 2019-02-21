@@ -11,7 +11,7 @@ import astropy.units as u
 import timeit
 import numpy as np
 import matplotlib.pyplot as plt
-
+from matplotlib import cm
 import warnings
 
 #%%
@@ -27,11 +27,13 @@ colnames_PLANCK = t_data_PLANCK.colnames
 bins = 100
 
 def loop_through_planck(table,f):
-    length = len(table)
+    length = 100#len(table)
     
     new_table_galaxy = Table(names=(table.colnames))
     new_table_star = Table(names=(table.colnames))
     new_table_other = Table(names=(table.colnames))
+    
+    
     
     if f == 'r':
         sep_list = []
@@ -151,13 +153,37 @@ with warnings.catch_warnings():
 #    print("4 down")
     
     #%%
+sdss_galaxies_r.sort('r')
+top_ten = sdss_galaxies_r[:5]
+top_ten_pos = coords.SkyCoord( ra = top_ten['ra']*u.degree ,  dec =top_ten['dec']*u.degree)
 
-plt.figure(1)
-plt.title("Colour Magnitude plot")
-plt.xlabel("Absolute magnitude (r)")
-plt.ylabel("Colour (u-g)")
-plt.scatter(Abs_mag_r,colour_r_i,s = 0.45)
-plt.savefig("Colour_Magnitude_plot_r__r_i.png")
+data_list_img = []
+for i in np.arange(len(top_ten)):
+    obj = top_ten[i]
+    pos = coords.SkyCoord( ra = obj['ra']*u.degree ,  dec = obj['dec']*u.degree)
+    imgs = SDSS.get_images(pos)
+    #print(len(imgs))
+    for v in np.arange(len(imgs)):
+        a = fits.HDUList(imgs[v])
+        b = a[0].data
+        data_list_img.append(b)
+        plt.figure()
+        plt.imshow(data_list_img[i])
+    
+#plt.figure()
+#plt.imshow(data_list_img[0] ,cmap='gray')
+
+
+
+
+
+#%%
+#plt.figure(1)
+#plt.title("Colour Magnitude plot")
+#plt.xlabel("Absolute magnitude (r)")
+#plt.ylabel("Colour (u-g)")
+#plt.scatter(Abs_mag_r,colour_r_i,s = 0.45)
+#plt.savefig("Colour_Magnitude_plot_r__r_i.png")
 
 #plt.figure(2)
 #plt.title("Colour Magnitude plot")
@@ -187,49 +213,49 @@ plt.savefig("Colour_Magnitude_plot_r__r_i.png")
 
 #%%
 
-plt.figure(0)
-plt.title("magnitude r")
-plt.xlabel("magnitude r")
-plt.ylabel("Count")
-plt.hist(mag_list,bins)
-plt.savefig("mag_list")
-    
-plt.figure(12)
-plt.title("mag_list_diff_one_two r")
-plt.xlabel("magnitude  diff u")
-plt.ylabel("Count")
-plt.hist(mag_list_diff_one_two,bins)
-plt.savefig("mag_list_diff_one_two")
-
-plt.figure(13)
-plt.title("mag_list_diff_two_three r")
-plt.xlabel("magnitude  diff r")
-plt.ylabel("Count")
-plt.hist(mag_list_diff_two_three,bins)
-plt.savefig("mag_list_diff_two_three")
-
-plt.figure(5)
-plt.title("Galaxy separation using Great Circle - r")
-plt.xlabel("Separation (r)")
-plt.ylabel("Number of galaxies")
-plt.hist(sep_list,bins)
-plt.savefig("Galaxy separation using Great Circle - r")
-
-plt.figure(6)
-plt.title("Colour Histogram")
-plt.xlabel("Colour (r-i)")
-plt.ylabel("Count")
-plt.hist(colour_r_i,bins)
-plt.savefig("colour_r_i")
-
-Colour_mask = (-1.5 < colour_r_i) & (colour_r_i < 0.2)
-up_colour = colour_r_i[Colour_mask]
-plt.figure()
-plt.title("Colour Histogram - reduced")
-plt.xlabel("Colour (r-i)")
-plt.ylabel("Count")
-plt.hist(up_colour,bins)
-plt.savefig("reduced colour_r_i")
+#plt.figure(0)
+#plt.title("magnitude r")
+#plt.xlabel("magnitude r")
+#plt.ylabel("Count")
+#plt.hist(mag_list,bins)
+#plt.savefig("mag_list")
+#    
+#plt.figure(12)
+#plt.title("mag_list_diff_one_two r")
+#plt.xlabel("magnitude  diff u")
+#plt.ylabel("Count")
+#plt.hist(mag_list_diff_one_two,bins)
+#plt.savefig("mag_list_diff_one_two")
+#
+#plt.figure(13)
+#plt.title("mag_list_diff_two_three r")
+#plt.xlabel("magnitude  diff r")
+#plt.ylabel("Count")
+#plt.hist(mag_list_diff_two_three,bins)
+#plt.savefig("mag_list_diff_two_three")
+#
+#plt.figure(5)
+#plt.title("Galaxy separation using Great Circle - r")
+#plt.xlabel("Separation (r)")
+#plt.ylabel("Number of galaxies")
+#plt.hist(sep_list,bins)
+#plt.savefig("Galaxy separation using Great Circle - r")
+#
+#plt.figure(6)
+#plt.title("Colour Histogram")
+#plt.xlabel("Colour (r-i)")
+#plt.ylabel("Count")
+#plt.hist(colour_r_i,bins)
+#plt.savefig("colour_r_i")
+#
+#Colour_mask = (-1.5 < colour_r_i) & (colour_r_i < 0.2)
+#up_colour = colour_r_i[Colour_mask]
+#plt.figure()
+#plt.title("Colour Histogram - reduced")
+#plt.xlabel("Colour (r-i)")
+#plt.ylabel("Count")
+#plt.hist(up_colour,bins)
+#plt.savefig("reduced colour_r_i")
 
 #plt.figure(7)
 #plt.title("Colour Histogram")
@@ -243,12 +269,21 @@ plt.savefig("reduced colour_r_i")
 #plt.ylabel("Count")
 #plt.hist(colour_r_i)
 
-plt.figure(9)
-plt.title("Histrogram of absolute magnitudes - r")
-plt.xlabel("Absolute magnitude (r)")
-plt.ylabel("Number of galaxies")
-plt.hist(Abs_mag_r,bins)
-plt.savefig("Histrogram of absolute magnitudes - r")
+#plt.figure(9)
+#plt.title("Histrogram of absolute magnitudes - r")
+#plt.xlabel("Absolute magnitude (r)")
+#plt.ylabel("Number of galaxies")
+#plt.hist(Abs_mag_r,bins)
+#plt.savefig("Histrogram of absolute magnitudes - r")
+#
+#abs_mask = (-18 < Abs_mag_r) & (Abs_mag_r < 10)
+#up_abs = Abs_mag_r[abs_mask]
+#plt.figure()
+#plt.title("Histrogram of absolute magnitudes - r")
+#plt.xlabel("Absolute magnitude (r)")
+#plt.ylabel("Number of galaxies")
+#plt.hist(up_abs,bins)
+#plt.savefig("Histrogram of absolute magnitudes - r")
 
 #%%
 end = timeit.default_timer()
