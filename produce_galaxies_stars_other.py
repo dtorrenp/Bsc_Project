@@ -15,10 +15,7 @@ import numpy as np
 
 #%%
 
-def loop_through_planck(table,f):
-    
-    length = len(table)
-    #length = 100
+def loop_through_planck(table,f,length):
     
     new_table_galaxy = Table(names=(table.colnames))
     new_table_star = Table(names=(table.colnames))

@@ -17,6 +17,7 @@ start = timeit.default_timer()
 filter_one = "r"
 dot_size = 0.45
 bins = 100
+number_of_compact_sources = 100
 
 #%%
 
@@ -85,7 +86,7 @@ t_data_PLANCK,colnames_PLANCK = op.open_planck_data()
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
     #loop_through_planck(table,f,length)
-    SDSS_DATA = pg.loop_through_planck(t_data_PLANCK,filter_one)
+    SDSS_DATA = pg.loop_through_planck(t_data_PLANCK,filter_one,number_of_compact_sources)
     #[new_table_galaxy,new_table_star,new_table_other,sep_list,mag_list,mag_list_diff_one_two,mag_list_diff_two_three]
     length = len(SDSS_DATA[0])
     SDSS_DATA[0].write("Data/sdss_galaxies_data_{}___lengthGalaxies_{}".format(filter_one,length), format = 'ascii')
