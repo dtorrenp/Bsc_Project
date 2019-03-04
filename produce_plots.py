@@ -20,6 +20,24 @@ def produce_colour_magnitude(Abs_mag,colour,filter_one,filter_two,dot_size):
     plt.scatter(Abs_mag,colour,s = dot_size)
     plt.savefig("Plots/Colour_Magnitude_plot_{}_{}___length_{}.png".format(filter_one,filter_two,length))
 
+def produce_colour_magnitude_ap_type(Abs_mag_exp,colour_exp,Abs_mag_de_v,colour_de_v,filter_one,filter_two,dot_size):
+    plt.figure()
+    plt.title("Colour Magnitude plot aperture type")
+    plt.xlabel("Absolute magnitude ({})".format(filter_one))
+    plt.ylabel("Colour ({}-{})".format(filter_one,filter_two))
+    plt.scatter(Abs_mag_exp,colour_exp,s = dot_size)
+    plt.scatter(Abs_mag_de_v,colour_de_v,s = dot_size)
+    plt.savefig("Plots/Colour_Magnitude_plot_aperture_type_{}_{}___length_exp_{}_length_de_V_{}.png".format(filter_one,filter_two,len(Abs_mag_exp),len(Abs_mag_de_v)))
+    
+#def produce_colour_magnitude_reduc(Abs_mag,colour,filter_one,filter_two,dot_size):
+#    length = len(Abs_mag)
+#    plt.figure()
+#    plt.title("Colour Magnitude plot reduc")
+#    plt.xlabel("Absolute magnitude ({})".format(filter_one))
+#    plt.ylabel("Colour ({}-{})".format(filter_one,filter_two))
+#    plt.scatter(Abs_mag,colour,s = dot_size)
+#    plt.savefig("Plots/Colour_Magnitude_plot_reduc_{}_{}___length_{}.png".format(filter_one,filter_two,length))
+
 #%%
 def produce_magnitude(mag_list,filter_one,bins):
     length = len(mag_list)
@@ -91,10 +109,10 @@ def produce_colour(colour,filter_one,filter_two,bins,lim_low,lim_up):
     plt.savefig("Plots/Reduced Colour Histogram_{}_{}___length_{}_bins_{}_limits_{}_{}.png".format(filter_one,filter_two,reduc_length,bins,lim_low,lim_up))
     
 #%%
-def produce_abs_mag(abs_mag,filter_one,filter_two,bins,lim_low,lim_up):
+def produce_abs_mag(abs_mag,filter_one,bins,lim_low,lim_up):
     length = len(abs_mag)
     plt.figure()
-    plt.title("Absolute Magnitude Histogram - ({} - {})".format(filter_one,filter_two))
+    plt.title("Absolute Magnitude Histogram - ({})".format(filter_one))
     plt.xlabel("Absolute Magnitude ({})".format(filter_one))
     plt.ylabel("Count")
     plt.hist(abs_mag,bins)
@@ -109,3 +127,13 @@ def produce_abs_mag(abs_mag,filter_one,filter_two,bins,lim_low,lim_up):
     plt.ylabel("Count")
     plt.hist(reduc_abs_mag,bins)
     plt.savefig("Plots/Reduced Absolute Magnitude Histogram_{}___length_{}_bins_{}_limits_{}_{}.png".format(filter_one,reduc_length,bins,lim_low,lim_up))
+    
+#%%
+def produce_galaxy_magnitude(mag_list,filter_one,bins):
+    length = len(mag_list)
+    plt.figure()
+    plt.title("Magnitude Galaxies ({})".format(filter_one))
+    plt.xlabel("Magnitude ({})".format(filter_one))
+    plt.ylabel("Count")
+    plt.hist(mag_list,bins)
+    plt.savefig("Plots/Magnitude Galaxies Historgram_{}___length_{}_bins_{}".format(filter_one,length,bins))

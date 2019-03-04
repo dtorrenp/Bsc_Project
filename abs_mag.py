@@ -15,7 +15,7 @@ def cal_abs_mag_astro(table,f,f_plus):
     red_table = table[red_mask]
     z_val = np.array(red_table["Z"])
     colour = np.asarray(red_table[f_plus]) - np.asarray(red_table[f])
-    Abs_mag = np.asarray(red_table[f]) - 5*np.log10(4.28e8*z_val) + 5
+    Abs_mag = np.asarray(red_table[f]) - 5*np.log10(4.28e8*z_val) + 5 #NO PLUS FIVE
     
     # ABSOLUTE MAGNITUDE NOT FEASBLE
     #wathc out for infinity magnitude!!!!!
