@@ -15,6 +15,7 @@ import warnings
 import timeit
 
 import matplotlib.pyplot as plt
+import seaborn as sns
 #%%
 start = timeit.default_timer()
 
