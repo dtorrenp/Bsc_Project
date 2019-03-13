@@ -12,16 +12,18 @@ from astropy import coordinates as coords
 import astropy.units as u
 import numpy as np
 import matplotlib.pyplot as plt
-
+from astropy.table import vstack
 import open_planck as op
-#import produce_galaxies_stars_other as pg
-#import abs_mag as ab
-#import produce_plots as pp
-#import top_ten_plate_pics as tt
+import timeit
+import warnings
+from astropy.io import fits
+
+#%%
+start = timeit.default_timer()
 
 #%%
 t_data_PLANCK,colnames_PLANCK = op.open_planck_data()
-
+print("PLANCK OPEN")
 #%%
 #ugriz  filters
 filter_one = "modelMag_r"
@@ -29,11 +31,13 @@ dot_size = 0.35
 bins = 100
 magnitude_limit = 20
 z_lim = 0.6
-number_of_compact_sources = 100#len(t_data_PLANCK)
+number_of_compact_sources = len(t_data_PLANCK)
+width = 10
 
 #%%
 def loop_through__redshift(table,f,length,mag_limit,z_lim):
-    z_list = []
+    
+    new_table_galaxy = Table()
     
     for i in np.arange(length):
         
@@ -47,69 +51,110 @@ def loop_through__redshift(table,f,length,mag_limit,z_lim):
         galatic_pos = pos.galactic
 
         xid = SDSS.query_region(galatic_pos, spectro = True , radius = 2.5*u.arcmin , specobj_fields=['Z','class'], photoobj_fields=['ra','dec','modelMag_u','modelMag_g','modelMag_r','modelMag_i'])
-
+        
         if xid is None:
             continue
         
         xid = unique(xid,keys=['ra', 'dec'])
         
-        xid.sort(f)
-            
-#        mask_redshift = xid['Z'] < z_lim
-#        xid = xid[mask_redshift]
+        mask_gal = (xid["class"] == "GALAXY")
+        xid = xid[mask_gal]
         
-        if xid is None:
+        if len(xid) == 0:
             continue
         
-        for v in np.arange(len(xid)):
+        xid.sort(f)
+        data_mask = xid[f] > mag_limit
+        data = xid[data_mask]
+        
+        if len(data) == 0:
+            data = Table(xid[0])
             
-            max_mag_object = xid[v]
-            max_mag_object = Table(max_mag_object)
-            
-            if max_mag_object[f] > mag_limit and v > 0:#AM I MESSINING WITH THE REDSHIFT HERE?????
-                break
-            
-            if max_mag_object["class"] == "GALAXY":
-                z_list.append(max_mag_object["Z"])
-                
-    return z_list
+        new_table_galaxy = vstack([new_table_galaxy, data])
+        
+        print(len(new_table_galaxy))
+        
+#    print(new_table_galaxy)
+    return new_table_galaxy
 
 #%%
-def rand_loop_through__redshift(f,length):
-    z_list = []
+def rand_loop_through__redshift(table,f,length,width):
+    new_table_galaxy = Table()
     
-    while len(z_list) < length:
+    while len(new_table_galaxy) < length:
         righta = np.random.uniform(-180,180)
         declin = np.random.uniform(-90,90)
         pos = coords.SkyCoord( ra = righta*u.degree , dec = declin*u.degree)
         galatic_pos = pos.galactic
-        xid = SDSS.query_region(galatic_pos, spectro = True , radius = 2.5*u.arcmin , specobj_fields=['Z'], photoobj_fields=['ra','dec'])
-
+        
+        xid = SDSS.query_region(galatic_pos, spectro = True , radius = width*u.arcmin , specobj_fields=['Z'], photoobj_fields=['ra','dec'])
+        
         if xid is None:
             continue
+        
         xid = unique(xid,keys=['ra', 'dec'])
-        z_list = np.concatenate((z_list,xid["Z"]))
-        print(len(z_list))
-                
-    return z_list
+        new_table_galaxy = vstack([new_table_galaxy, xid])
+        
+        print(len(new_table_galaxy))
+#    print(new_table_galaxy)
+    return new_table_galaxy
 
 #%%
+hdulist_SDSS = fits.open('//icnas2.cc.ic.ac.uk/dt1716/Year 3/Bsc Project/local code/fifty_thousand_redshift_unlim.fits')
+#hdulist_PLANCK = fits.open('C:/Users/DELL/Desktop/COM_PCCS_857_R2.01.fits')
+hdu_BinTable_SDSS = hdulist_SDSS[1]
+b = Table(hdu_BinTable_SDSS.data)
+print("SDSS OPEN")
+
+#%%
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
     
-print("hi")
-a = loop_through__redshift(t_data_PLANCK,filter_one,number_of_compact_sources,magnitude_limit,z_lim)
-np.save("Data/redshift_test_{}___lengthGalaxies_{}".format(filter_one,len(a)),a)
-#a = np.load("Data/redshift_test_{}___lengthGalaxies_{}".format(filter_one,len(a)))
-length = len(a)
-print("hi")
-b = rand_loop_through__redshift(filter_one,length)
-
+    #a = loop_through__redshift(t_data_PLANCK,filter_one,number_of_compact_sources,magnitude_limit,z_lim)
+    #a.write("Data/redshift_test_{}___lengthGalaxies_{}".format(filter_one,len(a)), format = 'ascii')
+    a = Table.read('//icnas2.cc.ic.ac.uk/dt1716/Year 3/Bsc Project/local code/Data/redshift_test_modelMag_r___lengthGalaxies_2737', format = 'ascii')
+    print("DATA OPEN")
+    
+    #b = rand_loop_through__redshift(t_data_PLANCK,filter_one,len(a),width)
+    #b.write("Data/redshift_test_rand_{}___lengthGalaxies_{}".format(filter_one,len(b)), format = 'ascii')
+    #b = Table.read('//icnas2.cc.ic.ac.uk/dt1716/Year 3/Bsc Project/local code/sdss_galaxies_data_petrosian_petroMag_r___lengthGalaxies_1716', format = 'ascii')
+    #print("RAND DATA OPEN")
+    
 #%%
 length = len(a)
+
 plt.figure()
 plt.title("redshift of galaxies")
 plt.xlabel("redshift")
 plt.ylabel("Count")
-plt.hist(a,bins)
-plt.hist(np.asarray(b),bins)
+plt.hist(b["redshift"],bins)
+plt.hist(a["Z"],bins)
 plt.savefig("Plots/redshift random Historgram_{}___length_{}_bins_{}".format(filter_one,length,bins))
 
+plt.figure()
+plt.title("redshift of galaxies - planck")
+plt.xlabel("redshift")
+plt.ylabel("Count")
+plt.hist(a["Z"],bins)
+plt.savefig("Plots/redshift random Historgram_ planck_{}___length_{}_bins_{}".format(filter_one,length,bins))
+
+plt.figure()
+plt.title("redshift of galaxies - random")
+plt.xlabel("redshift")
+plt.ylabel("Count")
+plt.hist(b["redshift"],bins)
+plt.savefig("Plots/redshift random Historgram_random_{}___length_{}_bins_{}".format(filter_one,length,bins))
+
+plt.figure()
+plt.title("Normalised redshift of galaxies")
+plt.xlabel("redshift")
+plt.ylabel("Count")
+plt.hist(b["redshift"],bins,density = True)
+plt.hist(a["Z"],bins, density = True)
+plt.savefig("Plots/Normalised redshift random Historgram_{}___length_{}_bins_{}".format(filter_one,length,bins))
+
+print("PLOTS DONE")
+
+#%%
+end = timeit.default_timer()
+print("time taken : {}s".format(round(end-start,2)))

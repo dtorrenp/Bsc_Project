@@ -7,8 +7,7 @@ Created on Mon Feb 25 11:47:33 2019
 #%%
 import matplotlib.pyplot as plt
 
-#%%
-plt.ioff()#TURNS OFF PICTURES PRODUCED IN CONSOLE, LOOK IN YOUR FOLDER
+#%%#TURNS OFF PICTURES PRODUCED IN CONSOLE, LOOK IN YOUR FOLDER
 
 #%%
 def produce_colour_magnitude(Abs_mag,colour,filter_one,filter_two,dot_size):
@@ -19,24 +18,6 @@ def produce_colour_magnitude(Abs_mag,colour,filter_one,filter_two,dot_size):
     plt.ylabel("Colour ({}-{})".format(filter_one,filter_two))
     plt.scatter(Abs_mag,colour,s = dot_size)
     plt.savefig("Plots/Colour_Magnitude_plot_{}_{}___length_{}.png".format(filter_one,filter_two,length))
-
-def produce_colour_magnitude_ap_type(Abs_mag_exp,colour_exp,Abs_mag_de_v,colour_de_v,filter_one,filter_two,dot_size):
-    plt.figure()
-    plt.title("Colour Magnitude plot aperture type")
-    plt.xlabel("Absolute magnitude ({})".format(filter_one))
-    plt.ylabel("Colour ({}-{})".format(filter_one,filter_two))
-    plt.scatter(Abs_mag_exp,colour_exp,s = dot_size)
-    plt.scatter(Abs_mag_de_v,colour_de_v,s = dot_size)
-    plt.savefig("Plots/Colour_Magnitude_plot_aperture_type_{}_{}___length_exp_{}_length_de_V_{}.png".format(filter_one,filter_two,len(Abs_mag_exp),len(Abs_mag_de_v)))
-    
-#def produce_colour_magnitude_reduc(Abs_mag,colour,filter_one,filter_two,dot_size):
-#    length = len(Abs_mag)
-#    plt.figure()
-#    plt.title("Colour Magnitude plot reduc")
-#    plt.xlabel("Absolute magnitude ({})".format(filter_one))
-#    plt.ylabel("Colour ({}-{})".format(filter_one,filter_two))
-#    plt.scatter(Abs_mag,colour,s = dot_size)
-#    plt.savefig("Plots/Colour_Magnitude_plot_reduc_{}_{}___length_{}.png".format(filter_one,filter_two,length))
 
 #%%
 def produce_magnitude(mag_list,filter_one,bins):

@@ -8,13 +8,14 @@ Created on Fri Mar  1 11:39:12 2019
 # -*- coding: utf-8 -*-
 #%%
 import open_planck as op
+
 import abs_mag as ab
 import pandas as pd
 import warnings
 import numpy as np
 import timeit
 import seaborn as sns
-from astroquery.sdss import SDSS
+from astroquery.simbad import Simbad
 from astropy.table import Table, unique
 from astropy import coordinates as coords
 from astropy.table import vstack
@@ -33,9 +34,9 @@ filter_one = "petroMag_u"
 filter_two = "petroMag_r"
 dot_size = 0.35
 bins = 100
-magnitude_limit = 18
+magnitude_limit = 20
 z_lim = 0.2
-number_of_compact_sources = len(t_data_PLANCK)
+number_of_compact_sources = 10#len(t_data_PLANCK)
 
 #Gr (-1.6 < colour) & (colour < 1) & (-18 < Abs_mag) & (Abs_mag < -4)
 #Ri (-0.7 < colour) & (colour < 0.5) & (-18.1 < Abs_mag) & (Abs_mag < -4)
@@ -72,8 +73,11 @@ def loop_through_planck_petro(table,f,length,mag_limit,z_lim):
         
         pos = coords.SkyCoord( ra = righta*u.degree , dec = declin*u.degree)
         galatic_pos = pos.galactic
-        
-        xid = SDSS.query_region(galatic_pos, spectro = True , radius = 2.5*u.arcmin , specobj_fields=['Z','class'], photoobj_fields=['ra','dec','petroMag_u','petroMag_g','petroMag_r','petroMag_i'])
+        xid = Simbad.query_region(galatic_pos , radius = 2.5*u.arcmin)
+        #xid = Simbad.query_region(galatic_pos, spectro = True , radius = 2.5*u.arcmin , specobj_fields=['Z','class'], photoobj_fields=['ra','dec','petroMag_u','petroMag_g','petroMag_r','petroMag_i'])
+        print(xid.colnames)
+        print(xid)
+        #SIMBAD IS A COMPLIATION OF A VARIETY OF OTHER CATALOGS NEED TO PICK A SPECIFIC ONE
         
         if xid is None:
             continue
@@ -106,14 +110,14 @@ def loop_through_planck_petro(table,f,length,mag_limit,z_lim):
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
 
-    SDSS_DATA = loop_through_planck_petro(t_data_PLANCK,filter_one,number_of_compact_sources,magnitude_limit,z_lim)
-    length = len(SDSS_DATA[0])
+    Simbad_DATA = loop_through_planck_petro(t_data_PLANCK,filter_one,number_of_compact_sources,magnitude_limit,z_lim)
+    length = len(Simbad_DATA[0])
     
-    SDSS_DATA[0].write("Data/sdss_galaxies_data_petrosian_{}___lengthGalaxies_{}".format(filter_one,length), format = 'ascii')
+    Simbad_DATA[0].write("Data/Simbad_galaxies_data_petrosian_{}___lengthGalaxies_{}".format(filter_one,length), format = 'ascii')
     
 #%%
 
-Abs_mag , colour = ab.cal_abs_mag_astro(SDSS_DATA[0],filter_one,filter_two)
+Abs_mag , colour = ab.cal_abs_mag_astro(Simbad_DATA[0],filter_one,filter_two)
 
 reduc_mask = (-4 < colour) & (colour < 1.3) & (-15.8 < Abs_mag) & (Abs_mag < -3)
 reduc_colour = colour[reduc_mask]
@@ -132,43 +136,37 @@ plt.title("Colour Magnitude Petrosian plot")
 plt.xlabel("Absolute magnitude ({})".format(filter_one))
 plt.ylabel("Colour ({}-{})".format(filter_one,filter_two))
 plt.scatter(Abs_mag,colour,s = dot_size)
-plt.savefig("Plots/Colour_Magnitude_Petrosian_plot_{}_{}___length_{}.png".format(filter_one,filter_two,length))
+plt.savefig("Plots/Simbad_Colour_Magnitude_Petrosian_plot_{}_{}___length_{}.png".format(filter_one,filter_two,length))
 
 plt.figure()
 plt.title("Colour Magnitude Petrosian plot reduced")
 plt.xlabel("Absolute magnitude ({})".format(filter_one))
 plt.ylabel("Colour ({}-{})".format(filter_one,filter_two))
 plt.scatter(reduc_Abs_mag,reduc_colour,s = dot_size)
-plt.savefig("Plots/Colour_Magnitude_Petrosian_plot_reduced_{}_{}___length_{}.png".format(filter_one,filter_two,length))
+plt.savefig("Plots/Simbad_Colour_Magnitude_Petrosian_plot_reduced_{}_{}___length_{}.png".format(filter_one,filter_two,length))
 
 plt.figure()
 plt.title("Colour Magnitude Petrosian Density plot")
 plt.xlabel("Absolute magnitude ({})".format(filter_one))
 plt.ylabel("Colour ({}-{})".format(filter_one,filter_two))
 plt.hist2d(Abs_mag,colour, bins = 100)
-plt.savefig("Plots/Colour_Magnitude_Petrosian_2DHISTplot_{}_{}___length_{}.png".format(filter_one,filter_two,length))
 
 plt.figure()
 plt.title("Colour Magnitude Petrosian Density plot reduced")
 plt.xlabel("Absolute magnitude ({})".format(filter_one))
 plt.ylabel("Colour ({}-{})".format(filter_one,filter_two))
 plt.hist2d(reduc_Abs_mag,reduc_colour, bins = bins)
-plt.savefig("Plots/Colour_Magnitude_Petrosian_2dhist_reduc_plot_{}_{}___length_{}.png".format(filter_one,filter_two,length))
 
 plt.figure()
 ax = sns.kdeplot(df['abs mag'], df['colour'], cmap='Reds', shade=False, shade_lowest= False, cbar=True )#.plot_joint(plt.scatter, c='black', s=dot_size, marker='.')
 ax.scatter(reduc_Abs_mag,reduc_colour, s = dot_size)
-plt.savefig("Plots/Colour_Magnitude_Petrosian_plot_contour_{}_{}___length_{}.png".format(filter_one,filter_two,length))
 
 ax2 = sns.jointplot(x='abs mag', y='colour', data=df, kind='kde')
 ax2.plot_joint(plt.scatter, c='black', s=dot_size, marker='.')
-plt.savefig("Plots/Colour_Magnitude_Petrosian_plot_countour_test_one_{}_{}___length_{}.png".format(filter_one,filter_two,length))
 
 ax3 = sns.jointplot(x='abs mag', y='colour', data=df,s = dot_size).plot_joint(sns.kdeplot, zorder=1, shade=True, n_levels = 6,colour = 'black')
-plt.savefig("Plots/Colour_Magnitude_Petrosian_plot_countour_test_two_{}_{}___length_{}.png".format(filter_one,filter_two,length))
 
 ax4 = sns.jointplot(x='abs mag', y='colour', data=df,s = dot_size).plot_joint(sns.kdeplot, zorder=1, shade=True, n_levels = 10,colour = 'black')
-plt.savefig("Plots/Colour_Magnitude_Petrosian_plot_countour_test_three_{}_{}___length_{}.png".format(filter_one,filter_two,length))
 
 #%%
 end = timeit.default_timer()
